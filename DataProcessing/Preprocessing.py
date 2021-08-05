@@ -8,7 +8,6 @@ Data preprocessing template
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 
 # Data NA treatment
@@ -63,7 +62,7 @@ class Preprocessing:
         if len(categorical_x) != 0:
             ct = ColumnTransformer(
                 [('one_hot_encoder',
-                  OneHotEncoder(categories='auto'), categorical_x)],
+                  OneHotEncoder(categories='auto', drop='if_binary'), categorical_x)],
                 remainder='passthrough'
             )
             self.x = np.array(ct.fit_transform(self.x), dtype=float)
@@ -72,19 +71,21 @@ class Preprocessing:
         # Encode categorical data for y
         if categorical_y:
             ct = ColumnTransformer(
-                [('one_hot_encoder', OneHotEncoder(categories='auto'), [0])],
+                [('one_hot_encoder', OneHotEncoder(categories='auto', drop='if_binary'), [0])],
                 remainder='passthrough'
             )
             self.y = np.array(ct.fit_transform(self.y), dtype=float)
 
     # Split dataset in training and testing sets
-    def splitDataset(self):
+    def splitDataset(self, test_size):
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
             self.x,
             self.y,
-            test_size=0.2,
+            test_size=test_size,
             random_state=0
         )
+        
+        return self.x_train, self.x_test, self.y_train, self.y_test
         
     def scaleData(self, scale_x, scale_y):
         # Standardization
@@ -104,8 +105,10 @@ class Preprocessing:
             # the same scaling on both matrixes
             self.y_test = sc_y.transform(self.y_test)
             
+        return self.x_train, self.x_test, self.y_train, self.y_test
+            
         
-    def treatData(self, missing=[], cat_x=[], cat_y=False, sc_x=False, sc_y=False):
+    def treatData(self, missing=[], cat_x=[], cat_y=False):
         # Missing data treatment
         if len(missing) != 0:
             self.naDataTreatment(missing)
@@ -114,11 +117,8 @@ class Preprocessing:
         if len(cat_x) != 0 or cat_y:
             self.categoricalDataTreatment(cat_x, cat_y)
             
-        # Split dataset
-        self.splitDataset()
-        
-        # Scale dataset
-        if sc_x or sc_y:
-            self.scaleData(sc_x, sc_y)
-            
-        return
+        return self.dataset, self.x, self.y
+    
+    def splitAndScale(self, test_size=0.2, sc_x=False, sc_y=False):
+        self.splitDataset(test_size)
+        return self.scaleData(sc_x, sc_y)
